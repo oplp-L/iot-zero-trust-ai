@@ -30,17 +30,16 @@ jobs:
 
       - name: Install dependencies
         run: |
-          set -eux
           if [ -f "backend/requirements.txt" ]; then
             pip install -r backend/requirements.txt
           fi
-          # 常用测试依赖
           pip install pytest httpx
 
-      - name: Run pytest (devices delete only)
-        run: pytest -q tests/test_devices_delete.py
+      - name: "Run pytest (stable suite: devices delete + risk e2e fast)"
+        run: |
+          pytest -q tests/test_devices_delete.py tests/test_risk_engine_e2e.py -k "not test_restore_after_cooldown_and_low"
 
-      - name: Upload pytest cache (optional)
+      - name: "Upload pytest cache (optional)"
         if: always()
         uses: actions/upload-artifact@v4
         with:
