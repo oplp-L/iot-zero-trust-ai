@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+python-multipart
+aiofiles
+jinja2
+passlib[bcrypt]==1.7.4
+PyJWT==2.8.0
+python-multipart==0.0.6httpx>=0.25,<1.0

@@ -1,0 +1,37 @@
+{
+  "weights": {
+    "auth_fail_rate": 25,
+    "policy_violation_base": 15,
+    "policy_violation_step": 2,
+    "flow_spike": 30,
+    "flow_spike_first": 20,
+    "new_protocol": 10,
+    "command_anomaly_base": 20,
+    "command_anomaly_step": 2,
+    "command_anomaly_max": 35
+  },
+  "thresholds": {
+    "auth_fail_min_total": 5,
+    "auth_fail_min_fail": 3,
+    "auth_fail_rate_min": 0.6,
+    "flow_spike_ratio": 3.0,
+    "flow_spike_min_bytes": 5000,
+    "flow_spike_first_min_bytes": 8000
+  },
+  "score_levels": {
+    "medium": 40,
+    "high": 70
+  },
+  "auto_response": {
+    "isolate": {
+      "high": true
+    },
+    "restore": {
+      "enabled": true,
+      "min_consecutive_non_high": 2,
+      "lookback_scores": 5,
+      "cooldown_seconds": 10,
+      "allow_levels": ["low", "medium"]
+    }
+  }
+}

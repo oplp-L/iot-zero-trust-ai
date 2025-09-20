@@ -1,0 +1,117 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from pydantic import BaseModel, Field, field_validator, ConfigDict
+from typing import Optional, List, Union
+from datetime import datetime, UTC
+
+from ..db import SessionLocal
+from .. import auth
+from ..models import Device, DeviceEvent, User  # 确保模型存在：DeviceEvent(event_type, payload, ts, device_id)
+
+router = APIRouter(prefix="/devices", tags=["DeviceEvents"])
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+ALLOWED_EVENT_TYPES = {
+    "auth_fail",
+    "auth_success",
+    "policy_violation",
+    "net_flow",
+    "command"
+    # 以后可扩展: "sensor_alert", "firmware_change" 等
+}
+
+class DeviceEventIn(BaseModel):
+    event_type: str = Field(..., description="事件类型")
+    payload: dict = Field(default_factory=dict, description="事件附加数据（JSON）")
+    ts: Optional[datetime] = Field(None, description="可选自定义时间戳，不传为当前时间（UTC）")
+
+    @field_validator("event_type", mode="before")
+    def validate_event_type(cls, v):
+        if v not in ALLOWED_EVENT_TYPES:
+            raise ValueError(f"event_type 不支持: {v}")
+        return v
+
+class EventsIn(BaseModel):
+    events: List[DeviceEventIn]
+
+class DeviceEventOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    device_id: int
+    event_type: str
+    ts: datetime
+    payload: dict
+
+@router.post("/{device_id}/events", summary="写入单条或多条设备事件", response_model=List[DeviceEventOut])
+def add_events(
+    device_id: int,
+    body: Union[DeviceEventIn, EventsIn],
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth.get_current_user)
+):
+    dev = db.query(Device).filter(Device.id == device_id).first()
+    if not dev:
+        raise HTTPException(404, "设备不存在")
+
+    # 权限（若需要）
+    # if current_user.role != "admin" and dev.owner_id != current_user.id:
+    #     raise HTTPException(403, "无权限")
+
+    # 统一成列表
+    if isinstance(body, DeviceEventIn):
+        events_in = [body]
+    else:
+        events_in = body.events
+
+    rows = []
+    default_now = datetime.now(UTC)
+    for e in events_in:
+        # 统一转换为 UTC aware
+        if e.ts is None:
+            ts = default_now
+        else:
+            ts = e.ts
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=UTC)
+            else:
+                ts = ts.astimezone(UTC)
+
+        row = DeviceEvent(
+            device_id=device_id,
+            event_type=e.event_type,
+            payload=e.payload,
+            ts=ts
+        )
+        db.add(row)
+        rows.append(row)
+
+    db.commit()
+    # 刷新
+    for r in rows:
+        db.refresh(r)
+    return rows
+
+@router.get("/{device_id}/events", summary="列出最近事件", response_model=List[DeviceEventOut])
+def list_events(
+    device_id: int,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth.get_current_user)
+):
+    dev = db.query(Device).filter(Device.id == device_id).first()
+    if not dev:
+        raise HTTPException(404, "设备不存在")
+    q = (
+        db.query(DeviceEvent)
+        .filter(DeviceEvent.device_id == device_id)
+        .order_by(DeviceEvent.id.desc())
+        .limit(limit)
+    )
+    return list(reversed(q.all()))  # 时间顺序升序返回

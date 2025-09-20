@@ -1,0 +1,70 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+backend/venv/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+logs/
+
+# Databases and artifacts
+*.db
+*.sqlite3
+iot_zt_ai.db
+test_ci.db
+
+# Coverage
+.coverage
+coverage.xml
+htmlcov/
+
+# Python caches and tooling
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# Env files
+.env
+.env.*
+
+# Local runtime config (template exists as risk_config.example.json)
+risk_config.json
+
+# Node / Front-end
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/.cache/
+frontend/.nuxt/
+frontend/.angular/
+frontend/.svelte-kit/
+frontend/.expo/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Optional editor swap files
+*.swp
+*.swo
+
+# Local artifacts / secrets
+token.txt

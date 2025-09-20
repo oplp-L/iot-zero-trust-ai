@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Show Python info
+        run: |
+          python -V
+          pip -V
+
+      - name: Install dependencies
+        run: |
+          set -eux
+          # 优先安装后端依赖（如果存在）
+          if [ -f "backend/requirements.txt" ]; then
+            pip install -r backend/requirements.txt
+          fi
+          # 常用测试依赖
+          pip install pytest httpx
+          # 如果你有项目根的 dev 依赖文件也一起装（可选）
+          if [ -f "requirements-dev.txt" ]; then
+            pip install -r requirements-dev.txt
+          fi
+
+      - name: Run pytest
+        run: pytest -q
+
+      - name: Upload pytest cache (optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-cache
+          path: |
+            .pytest_cache
+            **/.pytest_cache
+          if-no-files-found: ignore
