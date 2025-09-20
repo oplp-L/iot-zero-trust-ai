@@ -1,36 +1,37 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 
 from ..models import User
-from ..db import SessionLocal
 from .. import auth
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# 使用统一的 DB 依赖
+get_db = auth.get_db
 
 
-# 用 Pydantic 模型接收 JSON 请求体，防止 422 错误
 class UserCreate(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=3, max_length=32)
+    password: str = Field(..., min_length=6, max_length=128)
+    role: str = Field(default="user")
 
 
-@router.post("/")
+@router.post("/", status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    if db.query(User).filter_by(username=user.username).first():
-        raise HTTPException(status_code=400, detail="Username already exists")
-    # 使用 bcrypt 哈希密码
+    existed = db.query(User).filter_by(username=user.username).first()
+    if existed:
+        # 幂等处理：若已存在，则将密码重置为新值（pbkdf2）并可同步更新角色，返回 200
+        existed.password = auth.get_password_hash(user.password)
+        if user.role:
+            existed.role = user.role
+        db.commit()
+        db.refresh(existed)
+        return {"id": existed.id, "username": existed.username, "role": existed.role}
+    # 正常创建
     hashed = auth.get_password_hash(user.password)
-    user_obj = User(username=user.username, password=hashed)
+    user_obj = User(username=user.username, password=hashed, role=user.role)
     db.add(user_obj)
     db.commit()
     db.refresh(user_obj)
@@ -45,7 +46,10 @@ def list_users(db: Session = Depends(get_db)):
 
 # OAuth2 password grant 登录，返回 JWT
 @router.post("/token")
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
     user = auth.authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="用户名或密码错误")

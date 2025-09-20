@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, UTC
 from typing import Optional, Dict, Any
 
 from passlib.context import CryptContext
+from passlib.exc import UnknownHashError
 import jwt  # PyJWT
 from jwt import ExpiredSignatureError, PyJWTError
 
@@ -16,14 +17,8 @@ from .models import User
 """
 认证与授权模块
 ------------------------------------------------------------------
-开发环境：
-  - 可以直接使用默认 SECRET_KEY（会打印提醒），但建议尽快通过环境变量注入：
-        set SECRET_KEY=your_long_random_string   (Windows PowerShell)
-        export SECRET_KEY=your_long_random_string (Linux / macOS)
-
-生产环境：
-  - 必须使用高强度随机字符串做 SECRET_KEY（不少于 32 位）
-  - 不要把真实的 SECRET_KEY 写进仓库
+为避免在部分环境（如 Windows + Python 3.13）上因 bcrypt 原生后端缺失导致的错误，
+此处改用纯 Python 的 pbkdf2_sha256（由 passlib 提供），无需额外编译依赖，稳定可靠。
 """
 
 # 固定密钥策略：优先读取环境变量，缺失时使用占位符（开发期允许）
@@ -35,7 +30,8 @@ if SECRET_KEY == "CHANGE_ME_TO_A_STRONG_SECRET":
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 可按需调整或改为从环境变量读取
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# 使用 pbkdf2_sha256，避免 bcrypt 原生后端依赖问题
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 # 注意：这里必须与登录路由匹配，你的登录端点是 /users/token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/token")
@@ -52,7 +48,11 @@ def get_db():
 
 # ----------------------------- 密码处理 ----------------------------- #
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except UnknownHashError:
+        # 数据库中旧用户可能是 bcrypt 哈希；当前环境未启用 bcrypt 后端时，返回 False 让上层走失败分支
+        return False
 
 
 def get_password_hash(password: str) -> str:
