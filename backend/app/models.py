@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, UTC
 from sqlalchemy import (
     Column,
@@ -7,18 +8,28 @@ from sqlalchemy import (
     DateTime,
     Boolean,
     Text,
-    Float
+    Float,
 )
 from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy.dialects.sqlite import JSON as SQLITE_JSON
 
-# 对于支持原生 JSON 的数据库（例如 PostgreSQL/MySQL），可以这样导入
+# 统一处理 JSON 列类型：
+# - 默认在 SQLite（CI/本地测试）下使用 sqlite 方言的 JSON（兼容 json1）
+# - 若通过环境变量 DB_DIALECT 设为非 sqlite（如 postgres/mysql），则尝试使用通用 JSON
 try:
-    from sqlalchemy import JSON  # type: ignore
-    HAS_NATIVE_JSON = True
-except Exception:  # 兜底
-    JSON = SQLITE_JSON  # type: ignore
-    HAS_NATIVE_JSON = False
+    from sqlalchemy import JSON as SA_JSON  # 通用 JSON（需要后端方言支持）
+except Exception:  # 极端兜底
+    SA_JSON = None  # type: ignore
+
+try:
+    from sqlalchemy.dialects.sqlite import JSON as SQLITE_JSON
+except Exception:
+    SQLITE_JSON = None  # type: ignore
+
+DB_DIALECT = os.getenv("DB_DIALECT", "sqlite").lower()
+if DB_DIALECT == "sqlite" and SQLITE_JSON is not None:
+    JSON_TYPE = SQLITE_JSON
+else:
+    JSON_TYPE = SA_JSON if SA_JSON is not None else Text  # 最后兜底 Text
 
 Base = declarative_base()
 
@@ -78,7 +89,7 @@ class DeviceEvent(Base):
     device_id = Column(Integer, ForeignKey("devices.id"), index=True, nullable=False)
     event_type = Column(String(50), index=True, nullable=False)  # net_flow / auth_fail / command / policy_violation ...
     ts = Column(DateTime(timezone=True), index=True, nullable=False, default=lambda: datetime.now(UTC))
-    payload = Column(JSON if HAS_NATIVE_JSON else Text, nullable=True)  # 原始事件数据
+    payload = Column(JSON_TYPE, nullable=True)  # 原始事件数据
     ingested_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
 
     device = relationship("Device", lazy="joined")
@@ -93,7 +104,7 @@ class RiskScore(Base):
     window_end = Column(DateTime(timezone=True), index=True, nullable=False)
     score = Column(Float, nullable=False)
     level = Column(String(10), index=True)  # low / medium / high
-    reasons = Column(JSON if HAS_NATIVE_JSON else Text, nullable=True)  # JSON 列（原因列表）
+    reasons = Column(JSON_TYPE, nullable=True)  # JSON 列（原因列表）
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
 
     device = relationship("Device", lazy="joined")
@@ -107,7 +118,7 @@ class RiskAction(Base):
     score_id = Column(Integer, ForeignKey("risk_scores.id"), nullable=True)
     action_type = Column(String(30), nullable=False)  # isolate / restore / ...
     executed = Column(Boolean, default=False)
-    detail = Column(JSON if HAS_NATIVE_JSON else Text, nullable=True)
+    detail = Column(JSON_TYPE, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
 
     device = relationship("Device", lazy="joined")
@@ -121,7 +132,7 @@ class RiskConfigChange(Base):
     id = Column(Integer, primary_key=True, index=True)
     operator = Column(String(64), nullable=True)                 # 操作人（用户名）
     change_type = Column(String(32), nullable=False)             # patch / rollback
-    before_json = Column(JSON if HAS_NATIVE_JSON else Text)      # 变更前完整配置
-    after_json = Column(JSON if HAS_NATIVE_JSON else Text)       # 变更后完整配置
-    diff = Column(JSON if HAS_NATIVE_JSON else Text)             # {"path": ["old","new"], ...}
+    before_json = Column(JSON_TYPE)                              # 变更前完整配置
+    after_json = Column(JSON_TYPE)                               # 变更后完整配置
+    diff = Column(JSON_TYPE)                                     # {"path": ["old","new"], ...}
     created_at = Column(DateTime(timezone=True), index=True, nullable=False, default=lambda: datetime.now(UTC))

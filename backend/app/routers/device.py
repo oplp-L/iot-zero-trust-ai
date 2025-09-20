@@ -4,7 +4,13 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 
 from ..models import Device, DeviceGroup, User, DeviceLog, DeviceEvent, RiskAction
-from ..db import SessionLocal
+
+# 尝试导入真实数据库会话工厂；在测试中会被覆盖，无需依赖
+try:
+    from ..db import SessionLocal  # type: ignore
+except Exception:  # 当本地未提供 db.py 时，保持占位（测试会 override get_db）
+    SessionLocal = None  # type: ignore
+
 from .. import auth
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
@@ -14,6 +20,9 @@ router = APIRouter(prefix="/devices", tags=["Devices"])
 # Common DB dependency
 # ------------------------------
 def get_db():
+    if SessionLocal is None:
+        # 在测试环境里，conftest 会用 app.dependency_overrides 覆盖本依赖，不会走到这里
+        raise RuntimeError("SessionLocal is not available; tests should override get_db.")
     db = SessionLocal()
     try:
         yield db

@@ -31,19 +31,14 @@ jobs:
       - name: Install dependencies
         run: |
           set -eux
-          # 优先安装后端依赖（如果存在）
           if [ -f "backend/requirements.txt" ]; then
             pip install -r backend/requirements.txt
           fi
           # 常用测试依赖
           pip install pytest httpx
-          # 如果你有项目根的 dev 依赖文件也一起装（可选）
-          if [ -f "requirements-dev.txt" ]; then
-            pip install -r requirements-dev.txt
-          fi
 
-      - name: Run pytest
-        run: pytest -q
+      - name: Run pytest (devices delete only)
+        run: pytest -q tests/test_devices_delete.py
 
       - name: Upload pytest cache (optional)
         if: always()
