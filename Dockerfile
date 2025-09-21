@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # 先复制依赖文件，利用缓存加速
-COPY backend/requirements.txt /app/backend/requirements.txt
+COPY requirements.txt /app/backend/requirements.txt
 RUN pip install --no-compile --upgrade pip && \
     if [ -f "/app/backend/requirements.txt" ]; then pip install -r /app/backend/requirements.txt; fi
 

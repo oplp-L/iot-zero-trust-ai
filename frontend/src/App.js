@@ -5,6 +5,7 @@ import DevicePage from "./pages/DevicePage";
 import UserPage from "./pages/UserPage";
 import GroupPage from "./pages/GroupPage";
 import LoginPage from "./pages/LoginPage";
+import Dashboard from "./pages/Dashboard"; // 新增
 import { Layout, Menu, Button } from "antd";
 
 const { Header, Content } = Layout;
@@ -73,9 +74,12 @@ function App() {
           <Menu
             theme="dark"
             mode="horizontal"
-            defaultSelectedKeys={["devices"]}
+            defaultSelectedKeys={["dashboard"]}
             style={{ flex: 1 }}
           >
+            <Menu.Item key="dashboard">
+              <Link to="/dashboard">仪表盘</Link>
+            </Menu.Item>
             <Menu.Item key="devices">
               <Link to="/">设备管理</Link>
             </Menu.Item>
@@ -102,6 +106,14 @@ function App() {
 
         <Content style={{ padding: 24 }}>
           <Routes>
+            <Route
+              path="/dashboard"
+              element={
+                <RequireAuth>
+                  <Dashboard />
+                </RequireAuth>
+              }
+            />
             <Route
               path="/"
               element={
@@ -130,7 +142,7 @@ function App() {
               path="/login"
               element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
             />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Content>
       </Layout>
