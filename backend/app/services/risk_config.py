@@ -45,7 +45,7 @@ _DEFAULT_CONFIG: Dict[str, Any] = {
         "new_protocol": 10,
         "command_anomaly_base": 20,
         "command_anomaly_step": 2,
-        "command_anomaly_max": 35
+        "command_anomaly_max": 35,
     },
     "thresholds": {
         "auth_fail_min_total": 5,
@@ -53,12 +53,9 @@ _DEFAULT_CONFIG: Dict[str, Any] = {
         "auth_fail_rate_min": 0.6,
         "flow_spike_ratio": 3.0,
         "flow_spike_min_bytes": 5000,
-        "flow_spike_first_min_bytes": 8000
+        "flow_spike_first_min_bytes": 8000,
     },
-    "score_levels": {
-        "medium": 40,
-        "high": 70
-    },
+    "score_levels": {"medium": 40, "high": 70},
     "auto_response": {
         "isolate": {
             # 是否对 high 等级自动隔离
@@ -71,11 +68,11 @@ _DEFAULT_CONFIG: Dict[str, Any] = {
             # 在最近多少条评分中进行判定（窗口）
             "lookback_scores": 5,
             # 冷却时间（秒）（上一次 isolate 到现在 >= cooldown 才允许恢复）
-            "cooldown_seconds": 600,         # 等价旧版 restore_cooldown_minutes=10
+            "cooldown_seconds": 600,  # 等价旧版 restore_cooldown_minutes=10
             # 哪些 level 计入“安全”或“可恢复”集合
-            "allow_levels": ["low", "medium"]
-        }
-    }
+            "allow_levels": ["low", "medium"],
+        },
+    },
 }
 
 
@@ -127,12 +124,14 @@ class RiskConfig:
         （审计由上层服务控制，这里只做数据操作）
         """
         with self._lock:
+
             def _merge(a, b):
                 for k, v in b.items():
                     if isinstance(v, dict) and isinstance(a.get(k), dict):
                         _merge(a[k], v)
                     else:
                         a[k] = copy.deepcopy(v)
+
             _merge(self._data, patch)
             if self._maybe_migrate_legacy_auto_response(self._data):
                 # 若用户通过 patch 又打回旧结构，强制迁回新结构
@@ -209,15 +208,20 @@ class RiskConfig:
 
         has_new = "isolate" in ar or "restore" in ar
         legacy_keys = {
-            "enable_isolation", "high_score_isolate",
-            "enable_restore", "restore_low_level",
-            "restore_consecutive", "restore_cooldown_minutes"
+            "enable_isolation",
+            "high_score_isolate",
+            "enable_restore",
+            "restore_low_level",
+            "restore_consecutive",
+            "restore_cooldown_minutes",
         }
         has_legacy = any(k in ar for k in legacy_keys)
 
         if (not has_new) and has_legacy:
             # 构建新结构
-            isolate_high = bool(ar.get("enable_isolation", True) and ar.get("high_score_isolate", True))
+            isolate_high = bool(
+                ar.get("enable_isolation", True) and ar.get("high_score_isolate", True)
+            )
             restore_enabled = bool(ar.get("enable_restore", True))
 
             # 恢复触发等级：旧字段 restore_low_level 表示低于该级别即可恢复，
@@ -233,16 +237,14 @@ class RiskConfig:
 
             # 构造新结构
             new_ar = {
-                "isolate": {
-                    "high": isolate_high
-                },
+                "isolate": {"high": isolate_high},
                 "restore": {
                     "enabled": restore_enabled,
                     "min_consecutive_non_high": min_consec,
                     "lookback_scores": 5,
                     "cooldown_seconds": cooldown_sec,
-                    "allow_levels": allow_levels
-                }
+                    "allow_levels": allow_levels,
+                },
             }
             cfg["auto_response"] = new_ar
             changed = True

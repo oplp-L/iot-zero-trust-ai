@@ -66,7 +66,12 @@ def require_admin(current_user: User = Depends(auth.get_current_user)) -> User:
     return current_user
 
 
-@router.post("/", response_model=DeviceOut, status_code=status.HTTP_201_CREATED, summary="创建设备（仅管理员）")
+@router.post(
+    "/",
+    response_model=DeviceOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="创建设备（仅管理员）",
+)
 def create_device(
     device: DeviceCreate,
     db: Session = Depends(get_db),
@@ -95,7 +100,13 @@ def create_device(
     db.commit()
     db.refresh(device_obj)
 
-    db.add(DeviceLog(device_id=device_obj.id, log_type="create", message=f"Device '{device_obj.name}' created by {current_user.username}"))
+    db.add(
+        DeviceLog(
+            device_id=device_obj.id,
+            log_type="create",
+            message=f"Device '{device_obj.name}' created by {current_user.username}",
+        )
+    )
     db.commit()
 
     return _serialize_device(device_obj)
@@ -116,7 +127,9 @@ def get_device(
 @router.get("/", response_model=List[DeviceListOut], summary="列出设备")
 def list_devices(
     limit: int = Query(100, ge=1, le=500, description="最大返回数量"),
-    owner_only: bool = Query(False, description="为 True 时仅返回当前用户归属设备（非 admin 执行时可强制）"),
+    owner_only: bool = Query(
+        False, description="为 True 时仅返回当前用户归属设备（非 admin 执行时可强制）"
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(auth.get_current_user),
 ):
@@ -141,7 +154,9 @@ def delete_device(
     if not device:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="设备不存在")
 
-    db.query(DeviceEvent).filter(DeviceEvent.device_id == device_id).delete(synchronize_session=False)
+    db.query(DeviceEvent).filter(DeviceEvent.device_id == device_id).delete(
+        synchronize_session=False
+    )
     db.query(RiskAction).filter(RiskAction.device_id == device_id).delete(synchronize_session=False)
     db.query(DeviceLog).filter(DeviceLog.device_id == device_id).delete(synchronize_session=False)
 

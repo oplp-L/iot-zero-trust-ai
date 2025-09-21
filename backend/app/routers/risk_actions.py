@@ -8,12 +8,14 @@ from pydantic import BaseModel, ConfigDict
 
 router = APIRouter(prefix="/risk/actions", tags=["risk"])
 
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
 
 class RiskActionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -25,6 +27,7 @@ class RiskActionOut(BaseModel):
     executed: Optional[bool] = None
     detail: Optional[Any] = None
     created_at: Optional[str] = None
+
 
 @router.get("/{device_id}", response_model=List[RiskActionOut])
 def list_actions(
@@ -49,13 +52,15 @@ def list_actions(
             except Exception:
                 pass
         # 不直接修改 r.detail，避免污染 ORM 状态
-        result.append(RiskActionOut(
-            id=r.id,
-            device_id=r.device_id,
-            score_id=r.score_id,
-            action_type=r.action_type,
-            executed=bool(r.executed),
-            detail=detail_val,
-            created_at=r.created_at.isoformat() if getattr(r, "created_at", None) else None
-        ))
+        result.append(
+            RiskActionOut(
+                id=r.id,
+                device_id=r.device_id,
+                score_id=r.score_id,
+                action_type=r.action_type,
+                executed=bool(r.executed),
+                detail=detail_val,
+                created_at=r.created_at.isoformat() if getattr(r, "created_at", None) else None,
+            )
+        )
     return result

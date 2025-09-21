@@ -48,8 +48,7 @@ def _latest_isolation_or_restore(db: Session, device_id: int) -> Optional[RiskAc
     return (
         db.query(RiskAction)
         .filter(
-            RiskAction.device_id == device_id,
-            RiskAction.action_type.in_(["isolate", "restore"])
+            RiskAction.device_id == device_id, RiskAction.action_type.in_(["isolate", "restore"])
         )
         .order_by(RiskAction.id.desc())
         .first()
@@ -64,10 +63,7 @@ def _is_device_isolated(db: Session, device_id: int) -> bool:
 def _last_isolation_time(db: Session, device_id: int) -> Optional[datetime]:
     act = (
         db.query(RiskAction)
-        .filter(
-            RiskAction.device_id == device_id,
-            RiskAction.action_type == "isolate"
-        )
+        .filter(RiskAction.device_id == device_id, RiskAction.action_type == "isolate")
         .order_by(RiskAction.id.desc())
         .first()
     )
@@ -116,15 +112,17 @@ def maybe_auto_isolate(
             "score": risk_score.score,
             "level": risk_score.level,
             "reasons": risk_score.reasons,
-            "at": datetime.now(UTC).isoformat()
-        }
+            "at": datetime.now(UTC).isoformat(),
+        },
     )
     db.add(action)
-    db.add(DeviceLog(
-        device_id=risk_score.device_id,
-        log_type="risk_alert",
-        message=f"Auto isolation applied score={risk_score.score} level={risk_score.level}"
-    ))
+    db.add(
+        DeviceLog(
+            device_id=risk_score.device_id,
+            log_type="risk_alert",
+            message=f"Auto isolation applied score={risk_score.score} level={risk_score.level}",
+        )
+    )
     db.commit()
 
 
@@ -180,24 +178,22 @@ def maybe_auto_restore(
             detail={
                 "mode": "auto",
                 "reason": f"{min_consecutive} consecutive non-high scores",
-                "at": datetime.now(UTC).isoformat()
-            }
+                "at": datetime.now(UTC).isoformat(),
+            },
         )
         db.add(action)
-        db.add(DeviceLog(
-            device_id=device_id,
-            log_type="risk_restore",
-            message=f"Auto restore triggered after {min_consecutive} non-high scores"
-        ))
+        db.add(
+            DeviceLog(
+                device_id=device_id,
+                log_type="risk_restore",
+                message=f"Auto restore triggered after {min_consecutive} non-high scores",
+            )
+        )
         db.commit()
 
 
 # ================== 评分核心 (保留你原来的逻辑, 仅内联改造) ==================
-def compute_risk_for_device(
-    db: Session,
-    device_id: int,
-    window_minutes: int = 5
-) -> RiskScore:
+def compute_risk_for_device(db: Session, device_id: int, window_minutes: int = 5) -> RiskScore:
     """
     按指定窗口计算风险，写入 RiskScore，并执行自动隔离/恢复判定。
     """
@@ -209,11 +205,15 @@ def compute_risk_for_device(
     window_end = datetime.now(UTC)
     window_start = window_end - timedelta(minutes=window_minutes)
 
-    events = db.query(DeviceEvent).filter(
-        DeviceEvent.device_id == device_id,
-        DeviceEvent.ts >= window_start,
-        DeviceEvent.ts < window_end
-    ).all()
+    events = (
+        db.query(DeviceEvent)
+        .filter(
+            DeviceEvent.device_id == device_id,
+            DeviceEvent.ts >= window_start,
+            DeviceEvent.ts < window_end,
+        )
+        .all()
+    )
 
     reasons: List[Dict[str, Any]] = []
     score = 0.0
@@ -227,63 +227,63 @@ def compute_risk_for_device(
 
         # 1. 认证失败率
         total_auth = auth_fail + auth_ok
-        if (total_auth >= T["auth_fail_min_total"] and
-            auth_fail >= T["auth_fail_min_fail"]):
+        if total_auth >= T["auth_fail_min_total"] and auth_fail >= T["auth_fail_min_fail"]:
             fail_rate = auth_fail / total_auth if total_auth > 0 else 0
             if fail_rate >= T["auth_fail_rate_min"]:
                 w = W["auth_fail_rate"]
                 score += w
-                reasons.append({
-                    "metric": "auth_fail_rate",
-                    "auth_fail": auth_fail,
-                    "total_auth": total_auth,
-                    "fail_rate": round(fail_rate, 3),
-                    "weight": w
-                })
+                reasons.append(
+                    {
+                        "metric": "auth_fail_rate",
+                        "auth_fail": auth_fail,
+                        "total_auth": total_auth,
+                        "fail_rate": round(fail_rate, 3),
+                        "weight": w,
+                    }
+                )
 
         # 2. 策略违规 (叠加步进， capped)
         if policy_viol > 0:
             w = min(W["policy_violation_base"] + policy_viol * W["policy_violation_step"], 30)
             score += w
-            reasons.append({
-                "metric": "policy_violation",
-                "count": policy_viol,
-                "weight": w
-            })
+            reasons.append({"metric": "policy_violation", "count": policy_viol, "weight": w})
 
         # 3. 流量突增 (对比最近24h历史)
-        def _bytes(e): return (e.payload or {}).get("bytes_out", 0)
+        def _bytes(e):
+            return (e.payload or {}).get("bytes_out", 0)
+
         cur_vals = [_bytes(e) for e in net_flows if _bytes(e) > 0]
 
         day_ago = window_end - timedelta(hours=24)
-        hist_flows = db.query(DeviceEvent).filter(
-            DeviceEvent.device_id == device_id,
-            DeviceEvent.event_type == "net_flow",
-            DeviceEvent.ts >= day_ago,
-            DeviceEvent.ts < window_start
-        ).all()
+        hist_flows = (
+            db.query(DeviceEvent)
+            .filter(
+                DeviceEvent.device_id == device_id,
+                DeviceEvent.event_type == "net_flow",
+                DeviceEvent.ts >= day_ago,
+                DeviceEvent.ts < window_start,
+            )
+            .all()
+        )
         hist_vals = [_bytes(e) for e in hist_flows if _bytes(e) > 0]
 
         if cur_vals:
             cur_peak = max(cur_vals)
             hist_mean = (sum(hist_vals) / len(hist_vals)) if hist_vals else 0
-            if hist_mean > 0 and cur_peak / hist_mean > T["flow_spike_ratio"] and cur_peak > T["flow_spike_min_bytes"]:
+            if (
+                hist_mean > 0
+                and cur_peak / hist_mean > T["flow_spike_ratio"]
+                and cur_peak > T["flow_spike_min_bytes"]
+            ):
                 w = W["flow_spike"]
                 score += w
-                reasons.append({
-                    "metric": "flow_spike",
-                    "peak": cur_peak,
-                    "hist_mean": hist_mean,
-                    "weight": w
-                })
+                reasons.append(
+                    {"metric": "flow_spike", "peak": cur_peak, "hist_mean": hist_mean, "weight": w}
+                )
             elif hist_mean == 0 and cur_peak > T["flow_spike_first_min_bytes"]:
                 w = W["flow_spike_first"]
                 score += w
-                reasons.append({
-                    "metric": "flow_spike_first",
-                    "peak": cur_peak,
-                    "weight": w
-                })
+                reasons.append({"metric": "flow_spike_first", "peak": cur_peak, "weight": w})
 
         # 4. 新协议
         hist_protocols = set(
@@ -291,26 +291,23 @@ def compute_risk_for_device(
             for e in db.query(DeviceEvent).filter(
                 DeviceEvent.device_id == device_id,
                 DeviceEvent.event_type == "net_flow",
-                DeviceEvent.ts < window_start
+                DeviceEvent.ts < window_start,
             )
             if (e.payload or {}).get("protocol")
         )
         new_protos = set(
             (e.payload or {}).get("protocol")
             for e in net_flows
-            if (e.payload or {}).get("protocol") and (e.payload or {}).get("protocol") not in hist_protocols
+            if (e.payload or {}).get("protocol")
+            and (e.payload or {}).get("protocol") not in hist_protocols
         )
         if new_protos:
             w = W["new_protocol"]
             score += w
-            reasons.append({
-                "metric": "new_protocol",
-                "protocols": list(new_protos),
-                "weight": w
-            })
+            reasons.append({"metric": "new_protocol", "protocols": list(new_protos), "weight": w})
 
         # 5. 命令异常
-            # baseline 定义为常规命令集
+        # baseline 定义为常规命令集
         baseline_cmds = {"ls", "status"}
         anomal_cmds = [
             (e.payload or {}).get("cmd")
@@ -320,27 +317,31 @@ def compute_risk_for_device(
         if anomal_cmds:
             w = min(
                 W["command_anomaly_base"] + len(anomal_cmds) * W["command_anomaly_step"],
-                W["command_anomaly_max"]
+                W["command_anomaly_max"],
             )
             score += w
-            reasons.append({
-                "metric": "command_anomaly",
-                "count": len(anomal_cmds),
-                "cmds": anomal_cmds,
-                "weight": w
-            })
+            reasons.append(
+                {
+                    "metric": "command_anomaly",
+                    "count": len(anomal_cmds),
+                    "cmds": anomal_cmds,
+                    "weight": w,
+                }
+            )
 
         # 6. ML (可选占位)
         ml_res = run_ml_anomaly({"device_id": device_id, "event_count": len(events)})
         if ml_res:
             ml_weight = 15 * ml_res.get("score", 0)
             score += ml_weight
-            reasons.append({
-                "metric": "ml_anomaly",
-                "model": ml_res.get("model"),
-                "raw_score": ml_res.get("score"),
-                "weight": ml_weight
-            })
+            reasons.append(
+                {
+                    "metric": "ml_anomaly",
+                    "model": ml_res.get("model"),
+                    "raw_score": ml_res.get("score"),
+                    "weight": ml_weight,
+                }
+            )
 
     # 归一 & level 判定
     score = min(score, 100.0)
@@ -357,15 +358,17 @@ def compute_risk_for_device(
         window_end=window_end,
         score=score,
         level=level,
-        reasons=reasons
+        reasons=reasons,
     )
     db.add(rs)
 
-    db.add(DeviceLog(
-        device_id=device_id,
-        log_type="risk_eval",
-        message=f"Risk evaluated: score={score} level={level}"
-    ))
+    db.add(
+        DeviceLog(
+            device_id=device_id,
+            log_type="risk_eval",
+            message=f"Risk evaluated: score={score} level={level}",
+        )
+    )
     db.commit()
     db.refresh(rs)
 
@@ -373,32 +376,26 @@ def compute_risk_for_device(
     try:
         maybe_auto_isolate(db, rs, cfg)
     except Exception as e:
-        db.add(DeviceLog(
-            device_id=device_id,
-            log_type="risk_eval",
-            message=f"Auto isolation error: {e}"
-        ))
+        db.add(
+            DeviceLog(
+                device_id=device_id, log_type="risk_eval", message=f"Auto isolation error: {e}"
+            )
+        )
         db.commit()
 
     try:
         maybe_auto_restore(db, cfg, rs)
     except Exception as e:
-        db.add(DeviceLog(
-            device_id=device_id,
-            log_type="risk_eval",
-            message=f"Auto restore error: {e}"
-        ))
+        db.add(
+            DeviceLog(device_id=device_id, log_type="risk_eval", message=f"Auto restore error: {e}")
+        )
         db.commit()
 
     return rs
 
 
 # ================== 对外统一入口 ==================
-def evaluate_device_risk(
-    db: Session,
-    device_id: int,
-    window_minutes: int = 5
-) -> RiskScore:
+def evaluate_device_risk(db: Session, device_id: int, window_minutes: int = 5) -> RiskScore:
     """
     统一对外调用入口：
     - 调用 compute_risk_for_device

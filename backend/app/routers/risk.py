@@ -47,7 +47,14 @@ def evaluate_device_risk_api(
 
     # 当 high 时自动记录 isolate 动作，并可标记设备为隔离
     if level == "high":
-        db.add(RiskAction(device_id=device_id, action_type="isolate", executed=True, detail={"reason": "auth_fail_threshold"}))
+        db.add(
+            RiskAction(
+                device_id=device_id,
+                action_type="isolate",
+                executed=True,
+                detail={"reason": "auth_fail_threshold"},
+            )
+        )
         device.is_isolated = True
         db.commit()
 

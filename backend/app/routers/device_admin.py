@@ -44,7 +44,9 @@ def delete_device(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
 
     # 若数据库层未配置外键 ON DELETE CASCADE，则手动级联删除
-    db.query(DeviceEvent).where(DeviceEvent.device_id == device_id).delete(synchronize_session=False)
+    db.query(DeviceEvent).where(DeviceEvent.device_id == device_id).delete(
+        synchronize_session=False
+    )
     db.query(RiskAction).where(RiskAction.device_id == device_id).delete(synchronize_session=False)
 
     db.delete(device)

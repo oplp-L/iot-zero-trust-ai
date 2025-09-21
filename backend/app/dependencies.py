@@ -2,6 +2,7 @@ from fastapi import Depends, HTTPException
 from . import auth
 from .models import User
 
+
 def require_admin(current_user: User = Depends(auth.get_current_user)):
     """
     通用管理员鉴权依赖。

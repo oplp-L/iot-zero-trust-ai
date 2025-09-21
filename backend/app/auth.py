@@ -25,7 +25,9 @@ from .models import User
 SECRET_KEY = os.getenv("SECRET_KEY", "CHANGE_ME_TO_A_STRONG_SECRET")
 if SECRET_KEY == "CHANGE_ME_TO_A_STRONG_SECRET":
     # 仅作为开发提示，不抛异常；生产环境务必修改
-    print("[auth] WARNING: Using default insecure SECRET_KEY. Set environment variable SECRET_KEY in production!")
+    print(
+        "[auth] WARNING: Using default insecure SECRET_KEY. Set environment variable SECRET_KEY in production!"
+    )
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 可按需调整或改为从环境变量读取
@@ -79,10 +81,7 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     to_encode = data.copy()
     now = datetime.now(UTC)
     expire = now + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({
-        "exp": expire,
-        "iat": now
-    })
+    to_encode.update({"exp": expire, "iat": now})
     # PyJWT encode
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -103,10 +102,7 @@ def decode_access_token(token: str) -> Dict[str, Any]:
 
 
 # ----------------------------- FastAPI 依赖：获取当前用户 ----------------------------- #
-def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
-) -> User:
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     payload = decode_access_token(token)
     username = payload.get("sub")
     if username is None:

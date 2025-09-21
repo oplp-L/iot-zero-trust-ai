@@ -5,12 +5,14 @@ from backend.app.models import Device, RiskAction, DeviceLog
 
 router = APIRouter(prefix="/risk/manual", tags=["risk"])
 
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
 
 @router.post("/restore/{device_id}")
 def manual_restore(device_id: int, db: Session = Depends(get_db)):
@@ -28,14 +30,10 @@ def manual_restore(device_id: int, db: Session = Depends(get_db)):
         score_id=None,
         action_type="restore",
         executed=True,
-        detail={"mode": "manual"}
+        detail={"mode": "manual"},
     )
     dev.status = "online"
     db.add(ra)
-    db.add(DeviceLog(
-        device_id=device_id,
-        log_type="risk_alert",
-        message="Manual restore executed"
-    ))
+    db.add(DeviceLog(device_id=device_id, log_type="risk_alert", message="Manual restore executed"))
     db.commit()
     return {"message": "Restored", "action_id": ra.id}

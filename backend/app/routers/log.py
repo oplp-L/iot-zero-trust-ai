@@ -60,8 +60,8 @@ def _get_user_device_ids(db: Session, user: User) -> List[int]:
 
 
 # ---------------- Recent Logs ----------------
-@router.get("", summary="获取近期日志")                # /logs
-@router.get("/", include_in_schema=False)             # /logs/ 兼容，避免 307
+@router.get("", summary="获取近期日志")  # /logs
+@router.get("/", include_in_schema=False)  # /logs/ 兼容，避免 307
 def recent_logs(
     limit: int = Query(50, ge=1, le=500),
     since: Optional[str] = Query(None, description="ISO8601 (e.g. 2025-09-16T12:30:00)"),
@@ -178,12 +178,14 @@ def raw_basic(
     if current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
 
-    stmt = text("""
+    stmt = text(
+        """
         SELECT id, device_id, log_type, message, timestamp
         FROM device_logs
         ORDER BY id DESC
         LIMIT :limit
-    """)
+    """
+    )
     try:
         rows = db.execute(stmt, {"limit": limit}).fetchall()
     except Exception as e:
@@ -198,13 +200,15 @@ def raw_basic(
                 ts = ts.isoformat()
             else:
                 ts = str(ts).replace(" ", "T")
-        out.append({
-            "id": m.get("id"),
-            "device_id": m.get("device_id"),
-            "log_type": m.get("log_type"),
-            "message": m.get("message"),
-            "timestamp": ts,
-        })
+        out.append(
+            {
+                "id": m.get("id"),
+                "device_id": m.get("device_id"),
+                "log_type": m.get("log_type"),
+                "message": m.get("message"),
+                "timestamp": ts,
+            }
+        )
     return out
 
 

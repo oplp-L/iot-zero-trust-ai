@@ -36,6 +36,7 @@ Base = declarative_base()
 
 # ---------------- 原有模型 ----------------
 
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
@@ -82,13 +83,18 @@ class DeviceLog(Base):
 
 # ---------------- 新增：AI 行为 / 风险 模型 ----------------
 
+
 class DeviceEvent(Base):
     __tablename__ = "device_events"
 
     id = Column(Integer, primary_key=True, index=True)
     device_id = Column(Integer, ForeignKey("devices.id"), index=True, nullable=False)
-    event_type = Column(String(50), index=True, nullable=False)  # net_flow / auth_fail / command / policy_violation ...
-    ts = Column(DateTime(timezone=True), index=True, nullable=False, default=lambda: datetime.now(UTC))
+    event_type = Column(
+        String(50), index=True, nullable=False
+    )  # net_flow / auth_fail / command / policy_violation ...
+    ts = Column(
+        DateTime(timezone=True), index=True, nullable=False, default=lambda: datetime.now(UTC)
+    )
     payload = Column(JSON_TYPE, nullable=True)  # 原始事件数据
     ingested_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
 
@@ -130,9 +136,11 @@ class RiskConfigChange(Base):
     __tablename__ = "risk_config_changes"
 
     id = Column(Integer, primary_key=True, index=True)
-    operator = Column(String(64), nullable=True)                 # 操作人（用户名）
-    change_type = Column(String(32), nullable=False)             # patch / rollback
-    before_json = Column(JSON_TYPE)                              # 变更前完整配置
-    after_json = Column(JSON_TYPE)                               # 变更后完整配置
-    diff = Column(JSON_TYPE)                                     # {"path": ["old","new"], ...}
-    created_at = Column(DateTime(timezone=True), index=True, nullable=False, default=lambda: datetime.now(UTC))
+    operator = Column(String(64), nullable=True)  # 操作人（用户名）
+    change_type = Column(String(32), nullable=False)  # patch / rollback
+    before_json = Column(JSON_TYPE)  # 变更前完整配置
+    after_json = Column(JSON_TYPE)  # 变更后完整配置
+    diff = Column(JSON_TYPE)  # {"path": ["old","new"], ...}
+    created_at = Column(
+        DateTime(timezone=True), index=True, nullable=False, default=lambda: datetime.now(UTC)
+    )

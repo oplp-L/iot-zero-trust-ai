@@ -90,13 +90,18 @@ def auto_isolation_process(db: Session, score: RiskScore, config: dict) -> Optio
         return None
 
     # 1. 兼容旧 pending
-    pending = db.execute(text("""
+    pending = db.execute(
+        text(
+            """
         SELECT id FROM risk_actions
         WHERE device_id = :d
           AND action_type IN ('auto_isolate','isolate')
           AND (executed = 0 OR executed IS NULL)
         ORDER BY id DESC LIMIT 1
-    """), {"d": device_id}).fetchone()
+    """
+        ),
+        {"d": device_id},
+    ).fetchone()
     if pending:
         _finalize_existing_isolation(db, device, pending.id, from_pending=True)
         return "isolate(execute_pending)"
@@ -106,13 +111,18 @@ def auto_isolation_process(db: Session, score: RiskScore, config: dict) -> Optio
         return None
 
     # 3. 5 分钟内已隔离
-    recent = db.execute(text("""
+    recent = db.execute(
+        text(
+            """
         SELECT id FROM risk_actions
         WHERE device_id=:d
           AND action_type='isolate'
           AND created_at >= datetime('now','-5 minutes')
         LIMIT 1
-    """), {"d": device_id}).fetchone()
+    """
+        ),
+        {"d": device_id},
+    ).fetchone()
     if recent:
         return None
 
@@ -126,8 +136,12 @@ def auto_isolation_process(db: Session, score: RiskScore, config: dict) -> Optio
         "score": score.score,
         "level": score.level,
         "reasons": reasons,
-        "window_start": window_start.isoformat() if hasattr(window_start, "isoformat") else str(window_start),
-        "window_end": window_end.isoformat() if hasattr(window_end, "isoformat") else str(window_end),
+        "window_start": (
+            window_start.isoformat() if hasattr(window_start, "isoformat") else str(window_start)
+        ),
+        "window_end": (
+            window_end.isoformat() if hasattr(window_end, "isoformat") else str(window_end)
+        ),
     }
 
     action = RiskAction(
@@ -135,7 +149,7 @@ def auto_isolation_process(db: Session, score: RiskScore, config: dict) -> Optio
         score_id=score.id,
         action_type="isolate",
         executed=True,
-        detail=detail_payload
+        detail=detail_payload,
     )
     db.add(action)
 
@@ -145,11 +159,13 @@ def auto_isolation_process(db: Session, score: RiskScore, config: dict) -> Optio
         except Exception:
             pass
 
-    db.add(DeviceLog(
-        device_id=device_id,
-        log_type="risk_alert",
-        message=f"Auto isolation applied score={score.score} level={score.level}"
-    ))
+    db.add(
+        DeviceLog(
+            device_id=device_id,
+            log_type="risk_alert",
+            message=f"Auto isolation applied score={score.score} level={score.level}",
+        )
+    )
     db.commit()
     return "isolate"
 
@@ -194,11 +210,16 @@ def maybe_auto_restore(db: Session, score: RiskScore) -> Optional[str]:
     cooldown_minutes = ar.get("restore_cooldown_minutes", 10)
 
     # 冷却检查
-    last_restore = db.execute(text("""
+    last_restore = db.execute(
+        text(
+            """
         SELECT id, created_at FROM risk_actions
         WHERE device_id=:d AND action_type='restore'
         ORDER BY id DESC LIMIT 1
-    """), {"d": device.id}).fetchone()
+    """
+        ),
+        {"d": device.id},
+    ).fetchone()
     if last_restore and last_restore.created_at:
         last_dt = _to_utc_aware(last_restore.created_at)
         if last_dt and (datetime.now(UTC) - last_dt) < timedelta(minutes=cooldown_minutes):
@@ -228,12 +249,17 @@ def maybe_auto_restore(db: Session, score: RiskScore) -> Optional[str]:
         return None
 
     # 1 分钟内已有 restore（极端并发防抖）
-    very_recent = db.execute(text("""
+    very_recent = db.execute(
+        text(
+            """
         SELECT id FROM risk_actions
         WHERE device_id=:d AND action_type='restore'
           AND created_at >= datetime('now','-1 minutes')
         LIMIT 1
-    """), {"d": device.id}).fetchone()
+    """
+        ),
+        {"d": device.id},
+    ).fetchone()
     if very_recent:
         return None
 
@@ -253,15 +279,19 @@ def maybe_auto_restore(db: Session, score: RiskScore) -> Optional[str]:
             "reason": "consecutive_low",
             "streak": consecutive_need,
             "levels": [rs.level for rs in recent_scores],
-            "window_end": score.window_end.isoformat() if hasattr(score.window_end, "isoformat") else None
-        }
+            "window_end": (
+                score.window_end.isoformat() if hasattr(score.window_end, "isoformat") else None
+            ),
+        },
     )
     db.add(action)
-    db.add(DeviceLog(
-        device_id=device.id,
-        log_type="risk_alert",
-        message=f"Auto restore applied (streak={consecutive_need})"
-    ))
+    db.add(
+        DeviceLog(
+            device_id=device.id,
+            log_type="risk_alert",
+            message=f"Auto restore applied (streak={consecutive_need})",
+        )
+    )
     db.commit()
     return "restore"
 
@@ -269,13 +299,15 @@ def maybe_auto_restore(db: Session, score: RiskScore) -> Optional[str]:
 # ---------------------------------------------------------------------------
 # 旧记录升级
 # ---------------------------------------------------------------------------
-def _finalize_existing_isolation(db: Session, device: Device, action_id: int, from_pending: bool = False) -> None:
+def _finalize_existing_isolation(
+    db: Session, device: Device, action_id: int, from_pending: bool = False
+) -> None:
     """
     将旧的 auto_isolate（未执行）补为已执行，并升级为 isolate。
     """
     db.execute(
         text("UPDATE risk_actions SET action_type='isolate', executed=1 WHERE id=:id"),
-        {"id": action_id}
+        {"id": action_id},
     )
     if hasattr(device, "status"):
         try:
@@ -284,9 +316,9 @@ def _finalize_existing_isolation(db: Session, device: Device, action_id: int, fr
             pass
 
     msg = "Previous pending auto_isolate executed" if from_pending else "Isolation finalized"
-    db.add(DeviceLog(
-        device_id=device.id,
-        log_type="risk_alert",
-        message=f"{msg} (action_id={action_id})"
-    ))
+    db.add(
+        DeviceLog(
+            device_id=device.id, log_type="risk_alert", message=f"{msg} (action_id={action_id})"
+        )
+    )
     db.commit()

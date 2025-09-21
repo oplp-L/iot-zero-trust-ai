@@ -22,7 +22,11 @@ class GroupCreate(BaseModel):
 
 
 @router.post("/")
-def create_group(group: GroupCreate, db: Session = Depends(get_db), current_user: User = Depends(auth.get_current_user)):
+def create_group(
+    group: GroupCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth.get_current_user),
+):
     """
     创建分组：仅 admin
     """
@@ -41,7 +45,7 @@ def create_group(group: GroupCreate, db: Session = Depends(get_db), current_user
         "id": group_obj.id,
         "name": group_obj.name,
         "description": group_obj.description,
-        "status": group_obj.status
+        "status": group_obj.status,
     }
 
 
@@ -52,18 +56,17 @@ def list_groups(db: Session = Depends(get_db)):
     """
     groups = db.query(DeviceGroup).all()
     return [
-        {
-            "id": g.id,
-            "name": g.name,
-            "description": g.description,
-            "status": g.status
-        }
+        {"id": g.id, "name": g.name, "description": g.description, "status": g.status}
         for g in groups
     ]
 
 
 @router.post("/{group_id}/isolate")
-def isolate_group(group_id: int, db: Session = Depends(get_db), current_user: User = Depends(auth.get_current_user)):
+def isolate_group(
+    group_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth.get_current_user),
+):
     """
     隔离分组：仅 admin
     """
@@ -82,22 +85,28 @@ def isolate_group(group_id: int, db: Session = Depends(get_db), current_user: Us
         d.is_isolated = True
         d.status = "isolate"
         # 写设备日志
-        db.add(DeviceLog(device_id=d.id, log_type="group_isolate", message=f"Device isolated via group '{group.name}' by {current_user.username}"))
+        db.add(
+            DeviceLog(
+                device_id=d.id,
+                log_type="group_isolate",
+                message=f"Device isolated via group '{group.name}' by {current_user.username}",
+            )
+        )
     db.commit()
-    return {
-        "msg": "分组隔离成功",
-        "status": group.status,
-        "affected_devices": len(devices)
-    }
+    return {"msg": "分组隔离成功", "status": group.status, "affected_devices": len(devices)}
 
 
 @router.post("/{group_id}/restore")
-def restore_group(group_id: int, db: Session = Depends(get_db), current_user: User = Depends(auth.get_current_user)):
+def restore_group(
+    group_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(auth.get_current_user),
+):
     """
     恢复分组：仅 admin
     """
     if current_user.role != "admin":
-      raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有权限恢复分组")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有权限恢复分组")
 
     group = db.query(DeviceGroup).filter_by(id=group_id).first()
     if not group:
@@ -111,10 +120,12 @@ def restore_group(group_id: int, db: Session = Depends(get_db), current_user: Us
         d.is_isolated = False
         d.status = "online"
         # 写设备日志
-        db.add(DeviceLog(device_id=d.id, log_type="group_restore", message=f"Device restored via group '{group.name}' by {current_user.username}"))
+        db.add(
+            DeviceLog(
+                device_id=d.id,
+                log_type="group_restore",
+                message=f"Device restored via group '{group.name}' by {current_user.username}",
+            )
+        )
     db.commit()
-    return {
-        "msg": "分组恢复成功",
-        "status": group.status,
-        "affected_devices": len(devices)
-    }
+    return {"msg": "分组恢复成功", "status": group.status, "affected_devices": len(devices)}

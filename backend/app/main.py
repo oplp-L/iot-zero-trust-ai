@@ -34,11 +34,14 @@ app.include_router(device_events.router)
 app.include_router(risk.router)
 app.include_router(health_router)
 
+
 @app.get("/")
 def read_root():
     return {"msg": "IoT Zero Trust AI Platform backend is running!"}
 
+
 BUILD_TAG = "risk-e2e-minimal-1"
+
 
 @app.get("/__routes")
 def list_routes():

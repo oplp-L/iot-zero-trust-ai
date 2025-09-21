@@ -47,8 +47,7 @@ def list_users(db: Session = Depends(get_db)):
 # OAuth2 password grant 登录，返回 JWT
 @router.post("/token")
 def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
     user = auth.authenticate_user(db, form_data.username, form_data.password)
     if not user:

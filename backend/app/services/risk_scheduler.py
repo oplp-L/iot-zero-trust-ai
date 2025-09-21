@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from ..db import SessionLocal
 from ..models import Device
+
 # 使用我们在 risk_engine.py 中新增的统一入口（若你没有添加 evaluate_device_risk 包装，
 # 可以改为: from .risk_engine import compute_risk_for_device as evaluate_device_risk）
 from .risk_engine import evaluate_device_risk
@@ -15,6 +16,7 @@ class SchedulerState:
     """
     保存调度器运行时状态信息，便于通过 /risk/scheduler/status 查询。
     """
+
     def __init__(self):
         self.thread: Optional[threading.Thread] = None
         self.stop_event = threading.Event()
@@ -81,7 +83,7 @@ def get_status() -> Dict[str, Any]:
         "last_run_end": st.last_run_end,
         "last_run_duration": st.last_run_duration,
         "last_run_error": st.last_run_error,
-        "total_runs": st.total_runs
+        "total_runs": st.total_runs,
     }
 
 
@@ -144,9 +146,6 @@ def _evaluate_all_devices():
                 print(f"[Scheduler] ERROR device_id={d.id}: {e}")
 
         # 如果后面你改成自己批量处理并取消内部 commit，可在这里统一 db.commit()
-        print(
-            f"[Scheduler] Batch done errors={errors} "
-            f"duration={round(time.time() - t0, 3)}s"
-        )
+        print(f"[Scheduler] Batch done errors={errors} " f"duration={round(time.time() - t0, 3)}s")
     finally:
         db.close()

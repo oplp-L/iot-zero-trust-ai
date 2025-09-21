@@ -93,7 +93,9 @@ def test_high_triggers_isolate():
     assert "isolate" in body.lower(), body
 
 
-@pytest.mark.skipif(os.getenv("RUN_SLOW_RESTORE") != "1", reason="默认跳过慢速用例，设 RUN_SLOW_RESTORE=1 启用")
+@pytest.mark.skipif(
+    os.getenv("RUN_SLOW_RESTORE") != "1", reason="默认跳过慢速用例，设 RUN_SLOW_RESTORE=1 启用"
+)
 def test_restore_after_cooldown_and_low():
     """
     可选慢速：等待窗口老化 + 冷却完成后，连续低分评估触发 restore。

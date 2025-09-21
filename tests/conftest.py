@@ -62,6 +62,7 @@ def client(db_session):
     TestClient with dependency overrides:
     - Override routers.device.get_db to use the testing session.
     """
+
     def override_get_db():
         try:
             yield db_session
@@ -83,6 +84,7 @@ def as_admin():
     """
     Override auth.get_current_user to act as an admin user.
     """
+
     class _User:
         id = 1
         username = "admin"
@@ -101,6 +103,7 @@ def as_user():
     """
     Override auth.get_current_user to act as a normal user.
     """
+
     class _User:
         id = 2
         username = "user"

@@ -12,8 +12,10 @@ ALLOWED_TOP_KEYS = {"weights", "thresholds", "score_levels", "auto_response"}
 # （可选）自动响应策略允许的恢复级别
 ALLOWED_RESTORE_LEVELS = {"medium", "high"}  # 如果以后支持 low, 在此补充
 
+
 class ConfigValidationError(ValueError):
     """聚合多个配置校验错误后抛出"""
+
     pass
 
 
@@ -36,7 +38,7 @@ def compute_diff(before: Dict[str, Any], after: Dict[str, Any]) -> Dict[str, Tup
                 if nb != na:
                     diff[sub] = (
                         None if nb == "__MISSING__" else nb,
-                        None if na == "__MISSING__" else na
+                        None if na == "__MISSING__" else na,
                     )
 
     _walk(before, after)
@@ -121,7 +123,9 @@ def _validate_full_config(cfg: Dict[str, Any]) -> None:
         # 交叉约束
         if all(k in thresholds for k in ["auth_fail_min_total", "auth_fail_min_fail"]):
             if thresholds["auth_fail_min_total"] < thresholds["auth_fail_min_fail"]:
-                errors.append("thresholds.auth_fail_min_total 必须 >= thresholds.auth_fail_min_fail")
+                errors.append(
+                    "thresholds.auth_fail_min_total 必须 >= thresholds.auth_fail_min_fail"
+                )
 
     # 4. score_levels 校验
     if not isinstance(score_levels, dict):
@@ -206,22 +210,13 @@ def apply_patch(db: Session, patch: Dict[str, Any], operator: Optional[str]):
 
     # 审计
     audit = RiskConfigChange(
-        operator=operator,
-        change_type="patch",
-        before_json=before,
-        after_json=merged,
-        diff=diff
+        operator=operator, change_type="patch", before_json=before, after_json=merged, diff=diff
     )
     db.add(audit)
     db.commit()
     db.refresh(audit)
 
-    return {
-        "changed": True,
-        "diff": diff,
-        "config": merged,
-        "change_id": audit.id
-    }
+    return {"changed": True, "diff": diff, "config": merged, "change_id": audit.id}
 
 
 def rollback_to(db: Session, change_id: int, operator: Optional[str]):
@@ -232,11 +227,7 @@ def rollback_to(db: Session, change_id: int, operator: Optional[str]):
     3. 校验目标配置合法（防止历史数据已过时不合法）
     4. 持久化 & 审计
     """
-    target = (
-        db.query(RiskConfigChange)
-        .filter(RiskConfigChange.id == change_id)
-        .first()
-    )
+    target = db.query(RiskConfigChange).filter(RiskConfigChange.id == change_id).first()
     if not target:
         raise ValueError("指定版本不存在")
 
@@ -257,19 +248,10 @@ def rollback_to(db: Session, change_id: int, operator: Optional[str]):
     new_cfg = risk_config.replace_and_persist(after)
 
     audit = RiskConfigChange(
-        operator=operator,
-        change_type="rollback",
-        before_json=before,
-        after_json=new_cfg,
-        diff=diff
+        operator=operator, change_type="rollback", before_json=before, after_json=new_cfg, diff=diff
     )
     db.add(audit)
     db.commit()
     db.refresh(audit)
 
-    return {
-        "rolled": True,
-        "diff": diff,
-        "new_change_id": audit.id,
-        "config": new_cfg
-    }
+    return {"rolled": True, "diff": diff, "new_change_id": audit.id, "config": new_cfg}
