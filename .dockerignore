@@ -1,0 +1,33 @@
+# VCS / IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Python env / caches
+.venv
+venv
+env
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# Node / frontend
+node_modules/
+frontend/
+
+# Local data
+data/
+iot_zt_ai.db
+test_ci.db
+*.sqlite3
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini

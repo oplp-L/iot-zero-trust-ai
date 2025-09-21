@@ -9,10 +9,21 @@ venv/
 env/
 backend/venv/
 
+# Python version management
+.python-version
+
+# PEP 582
+__pypackages__/
+
+# Tox / Nox
+.tox/
+.nox/
+
 # Distribution / packaging
 build/
 dist/
 *.egg-info/
+pip-wheel-metadata/
 
 # Logs
 *.log
@@ -26,8 +37,12 @@ test_ci.db
 
 # Coverage
 .coverage
+.coverage.*
 coverage.xml
 htmlcov/
+
+# Property-based / hypothesis
+.hypothesis/
 
 # Python caches and tooling
 .ipynb_checkpoints/
@@ -61,10 +76,14 @@ frontend/.expo/
 .idea/
 .DS_Store
 Thumbs.db
+Desktop.ini
+ehthumbs.db
 
-# Optional editor swap files
+# Optional editor swap files / local history
 *.swp
 *.swo
+.history/
+.local/
 
 # Local artifacts / secrets
 token.txt

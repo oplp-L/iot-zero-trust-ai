@@ -1,0 +1,43 @@
+name: CI (slow e2e)
+
+on:
+  workflow_dispatch: {}         # 允许在 Actions 页面手动触发
+  schedule:
+    - cron: "0 19 * * *"        # 可选：每天 19:00 UTC 自动运行一次（按需调整或删除）
+
+jobs:
+  slow-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      RUN_SLOW_RESTORE: "1"     # 启用慢用例的环境变量
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          if [ -f "backend/requirements.txt" ]; then
+            pip install -r backend/requirements.txt
+          fi
+          pip install pytest httpx
+
+      - name: Run only slow test
+        run: |
+          pytest -q tests/test_risk_engine_e2e.py::test_restore_after_cooldown_and_low -s
+
+      - name: Upload pytest cache (optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-cache-slow
+          path: |
+            .pytest_cache
+            **/.pytest_cache
+          if-no-files-found: ignore
