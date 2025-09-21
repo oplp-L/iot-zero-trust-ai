@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   api:
     build: .
@@ -12,6 +11,8 @@ services:
       # 若 .env 没设置，这里提供默认值
       SECRET_KEY: "${SECRET_KEY:-replace-me}"
       SQLALCHEMY_DATABASE_URL: "${SQLALCHEMY_DATABASE_URL:-sqlite:////data/iot_zt_ai.db}"
+      UVICORN_HOST: "${UVICORN_HOST:-0.0.0.0}"
+      UVICORN_PORT: "${UVICORN_PORT:-8000}"
     volumes:
       - ./data:/data        # 持久化 sqlite DB 到宿主机 ./data
     restart: unless-stopped
