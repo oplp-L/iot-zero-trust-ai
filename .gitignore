@@ -35,6 +35,9 @@ logs/
 iot_zt_ai.db
 test_ci.db
 
+# Persisted runtime data (Docker volume mapped)
+data/
+
 # Coverage
 .coverage
 .coverage.*
