@@ -138,10 +138,14 @@ def auto_isolation_process(db: Session, score: RiskScore, config: dict) -> Optio
         "level": score.level,
         "reasons": reasons,
         "window_start": (
-            window_start.isoformat() if hasattr(window_start, "isoformat") else str(window_start)
+            window_start.isoformat()
+            if hasattr(window_start, "isoformat") and window_start is not None
+            else str(window_start)
         ),
         "window_end": (
-            window_end.isoformat() if hasattr(window_end, "isoformat") else str(window_end)
+            window_end.isoformat()
+            if hasattr(window_end, "isoformat") and window_end is not None
+            else str(window_end)
         ),
     }
 
@@ -221,8 +225,8 @@ def maybe_auto_restore(db: Session, score: RiskScore) -> Optional[str]:
         ),
         {"d": device.id},
     ).fetchone()
-    if last_restore and last_restore.created_at:
-        last_dt = _to_utc_aware(last_restore.created_at)
+    if last_restore and getattr(last_restore, "created_at", None):
+        last_dt = _to_utc_aware(getattr(last_restore, "created_at", None))
         if last_dt and (datetime.now(UTC) - last_dt) < timedelta(minutes=cooldown_minutes):
             return None
 
@@ -281,7 +285,9 @@ def maybe_auto_restore(db: Session, score: RiskScore) -> Optional[str]:
             "streak": consecutive_need,
             "levels": [rs.level for rs in recent_scores],
             "window_end": (
-                score.window_end.isoformat() if hasattr(score.window_end, "isoformat") else None
+                score.window_end.isoformat()
+                if hasattr(score.window_end, "isoformat") and score.window_end is not None
+                else None
             ),
         },
     )

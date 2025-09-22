@@ -56,6 +56,7 @@ def _get_user_device_ids(db: Session, user: User) -> List[int]:
     """
     if user.role == "admin":
         return []
+    # 修正：返回设备实例的 id 字段值，不是 Column
     return [d.id for d in db.query(Device).filter_by(owner_id=user.id).all()]
 
 
@@ -106,9 +107,10 @@ def recent_logs(
         like = f"%{search}%"
         q = q.filter(DeviceLog.message.ilike(like))
 
-    col = DeviceLog.id if sort == "id" else DeviceLog.timestamp
-    col = desc(col) if order == "desc" else asc(col)
-    q = q.order_by(col)
+    # 修正排序写法，避免类型问题
+    field = DeviceLog.id if sort == "id" else DeviceLog.timestamp
+    ordering = desc(field) if order == "desc" else asc(field)
+    q = q.order_by(ordering)
 
     rows = q.limit(limit).all()
     return [serialize_log(r) for r in rows]

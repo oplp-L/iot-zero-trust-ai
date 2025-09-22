@@ -65,6 +65,7 @@ def authenticate_user(db: Session, username: str, password: str) -> Optional[Use
     user = db.query(User).filter_by(username=username).first()
     if not user:
         return None
+    # 注意：这里 user.password 是字段实际值（str），不是 Column
     if not verify_password(password, user.password):
         return None
     return user

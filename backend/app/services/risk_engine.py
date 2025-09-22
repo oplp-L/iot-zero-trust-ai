@@ -63,6 +63,7 @@ def _last_isolation_time(db: Session, device_id: int) -> Optional[datetime]:
         .order_by(RiskAction.id.desc())
         .first()
     )
+    # 修正：只返回 created_at 字段实际值（类型为 Optional[datetime]），而不是 Column
     return act.created_at if act else None
 
 

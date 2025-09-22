@@ -8,7 +8,7 @@ from ..models import Device, DeviceEvent, DeviceGroup, DeviceLog, RiskAction, Us
 
 # 测试会覆盖 get_db，这里兜底使用 SessionLocal（若不可用则在运行时抛错）
 try:
-    from ..db import SessionLocal  # type: ignore
+    from ..db import SessionLocal
 except Exception:
     SessionLocal = None  # type: ignore
 

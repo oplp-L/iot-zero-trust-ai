@@ -88,7 +88,7 @@ def get_status() -> Dict[str, Any]:
     }
 
 
-def _runner():
+def _runner() -> None:
     """
     后台线程主循环：按设定间隔调用 _evaluate_all_devices。
     """
@@ -116,7 +116,7 @@ def _runner():
     st.running = False
 
 
-def _evaluate_all_devices():
+def _evaluate_all_devices() -> None:
     """
     遍历所有设备并执行一次风险评估。
 
