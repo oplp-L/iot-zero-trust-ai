@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from ..models import DeviceGroup, Device, User, DeviceLog
-from ..db import SessionLocal
+
 from .. import auth
+from ..db import SessionLocal
+from ..models import Device, DeviceGroup, DeviceLog, User
 
 router = APIRouter(prefix="/groups", tags=["Groups"])
 

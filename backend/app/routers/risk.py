@@ -1,11 +1,11 @@
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 from typing import List
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from .. import auth
-from ..models import User, Device, DeviceEvent, RiskAction
+from ..models import Device, DeviceEvent, RiskAction, User
 
 router = APIRouter(prefix="/risk", tags=["Risk"])
 

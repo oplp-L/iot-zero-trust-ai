@@ -1,10 +1,11 @@
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime, UTC
 
-from ..db import SessionLocal
 from .. import auth
-from ..models import Device, User, DeviceEvent
+from ..db import SessionLocal
+from ..models import Device, DeviceEvent, User
 from ..schemas_ai import EventIngestBatch
 
 router = APIRouter(prefix="/events", tags=["Events"])

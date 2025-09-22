@@ -4,16 +4,12 @@
 
 from __future__ import annotations
 
-from sqlalchemy.orm import Session
-from datetime import datetime, timedelta, UTC
-from typing import Dict, Any, List, Optional, Set
+from datetime import UTC, datetime, timedelta
+from typing import Any, Dict, List, Optional, Set
 
-from ..models import (
-    DeviceEvent,
-    RiskScore,
-    DeviceLog,
-    RiskAction,
-)
+from sqlalchemy.orm import Session
+
+from ..models import DeviceEvent, DeviceLog, RiskAction, RiskScore
 
 # 使用你已有的动态配置加载器
 from .risk_config import risk_config

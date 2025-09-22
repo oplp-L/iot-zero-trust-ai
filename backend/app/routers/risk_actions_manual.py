@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from backend.app.db import SessionLocal
-from backend.app.models import Device, RiskAction, DeviceLog
+from backend.app.models import Device, DeviceLog, RiskAction
 
 router = APIRouter(prefix="/risk/manual", tags=["risk"])
 

@@ -20,13 +20,14 @@
 """
 
 from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
 from typing import Optional, Union
-from datetime import datetime, timedelta, UTC
 
-from sqlalchemy.orm import Session
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 
-from ..models import RiskAction, RiskScore, DeviceLog, Device
+from ..models import Device, DeviceLog, RiskAction, RiskScore
 from .risk_config import risk_config
 
 

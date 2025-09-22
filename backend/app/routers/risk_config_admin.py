@@ -1,12 +1,13 @@
 from typing import Any, Dict
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from backend.app import auth
 from backend.app.db import SessionLocal
+from backend.app.models import RiskConfigChange
 from backend.app.services.risk_config import risk_config
 from backend.app.services.risk_config_service import apply_patch, rollback_to
-from backend.app.models import RiskConfigChange
-from backend.app import auth
 
 router = APIRouter(prefix="/risk/config", tags=["risk-config"])
 

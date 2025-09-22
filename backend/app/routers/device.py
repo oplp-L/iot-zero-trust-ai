@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from pydantic import BaseModel, Field, ConfigDict
-from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import List, Optional
 
-from ..models import Device, DeviceGroup, User, DeviceLog, DeviceEvent, RiskAction
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.orm import Session
+
+from ..models import Device, DeviceEvent, DeviceGroup, DeviceLog, RiskAction, User
 
 # 测试会覆盖 get_db，这里兜底使用 SessionLocal（若不可用则在运行时抛错）
 try:

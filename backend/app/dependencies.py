@@ -1,4 +1,5 @@
 from fastapi import Depends, HTTPException
+
 from . import auth
 from .models import User
 

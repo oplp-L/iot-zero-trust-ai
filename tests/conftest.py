@@ -1,10 +1,11 @@
 import os
 import sys
 from pathlib import Path
+
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from fastapi.testclient import TestClient
 
 # ------------------------------
 # Ensure project root on sys.path (keep your original logic)
@@ -13,13 +14,14 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from backend.app import auth  # to override get_current_user in tests
+
 # ------------------------------
 # Import app and project components
 # ------------------------------
 from backend.app.main import app  # assumes app = FastAPI() is defined here
-from backend.app.routers import device as device_router  # to override get_db used by this router
-from backend.app import auth  # to override get_current_user in tests
 from backend.app.models import Base  # declarative base for creating/dropping tables
+from backend.app.routers import device as device_router  # to override get_db used by this router
 
 # ------------------------------
 # Test database (SQLite file)

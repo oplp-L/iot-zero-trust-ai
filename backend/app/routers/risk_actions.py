@@ -1,10 +1,12 @@
 import json
-from typing import List, Optional, Any
+from typing import Any, List, Optional
+
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
+
 from backend.app.db import SessionLocal
 from backend.app.models import RiskAction
-from pydantic import BaseModel, ConfigDict
 
 router = APIRouter(prefix="/risk/actions", tags=["risk"])
 

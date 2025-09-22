@@ -3,12 +3,7 @@ from pydantic import BaseModel
 
 from ..dependencies import require_admin
 from ..models import User
-from ..services.risk_scheduler import (
-    start_scheduler,
-    stop_scheduler,
-    update_interval,
-    get_status,
-)
+from ..services.risk_scheduler import get_status, start_scheduler, stop_scheduler, update_interval
 
 router = APIRouter(prefix="/risk/scheduler", tags=["RiskScheduler"])
 

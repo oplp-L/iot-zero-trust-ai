@@ -1,19 +1,17 @@
 import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 
-from .routers import device
-from .routers import user
-from .routers import device_events
-from .routers import risk
-
-# 确保在应用加载时创建所有表（CI/全新环境必需）
-from .models import Base
 from .db import engine
 
 # 健康检查路由
 from .health import router as health_router
+
+# 确保在应用加载时创建所有表（CI/全新环境必需）
+from .models import Base
+from .routers import device, device_events, risk, user
 
 Base.metadata.create_all(bind=engine)
 

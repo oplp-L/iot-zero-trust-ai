@@ -1,6 +1,8 @@
 from __future__ import annotations
-from typing import Any, Dict, Tuple, List, Optional
+
 import copy
+from typing import Any, Dict, List, Optional, Tuple
+
 from sqlalchemy.orm import Session
 
 from ..models import RiskConfigChange

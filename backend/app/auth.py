@@ -1,14 +1,13 @@
 import os
-from datetime import datetime, timedelta, UTC
-from typing import Optional, Dict, Any
+from datetime import UTC, datetime, timedelta
+from typing import Any, Dict, Optional
 
-from passlib.context import CryptContext
-from passlib.exc import UnknownHashError
 import jwt  # PyJWT
-from jwt import ExpiredSignatureError, PyJWTError
-
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from jwt import ExpiredSignatureError, PyJWTError
+from passlib.context import CryptContext
+from passlib.exc import UnknownHashError
 from sqlalchemy.orm import Session
 
 from .db import SessionLocal

@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+
 from backend.app.models import Device
 
 

@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-# 复用已有的 get_db：从同目录的 device 路由导入（你的项目里每个路由都有自己的 get_db）
-from .device import get_db
-
 # 鉴权依赖：假设 get_current_user 在 backend/app/auth.py 中
 from ..auth import get_current_user
 
 # 模型：按你的项目结构常见命名导入，如有差异可参考 device_events.py / risk_actions.py 的导入写法调整
 from ..models import Device, DeviceEvent, RiskAction
+
+# 复用已有的 get_db：从同目录的 device 路由导入（你的项目里每个路由都有自己的 get_db）
+from .device import get_db
 
 router = APIRouter(prefix="/devices", tags=["devices"])
 

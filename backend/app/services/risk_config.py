@@ -1,8 +1,8 @@
+import copy
 import json
 import os
 import threading
 from typing import Any, Dict
-import copy
 
 """
 risk_config.py

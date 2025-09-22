@@ -1,7 +1,8 @@
 import threading
 import time
 import traceback
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy.orm import Session
 
 from ..db import SessionLocal

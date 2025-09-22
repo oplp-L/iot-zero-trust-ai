@@ -1,15 +1,7 @@
 import os
-from datetime import datetime, UTC
-from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    ForeignKey,
-    DateTime,
-    Boolean,
-    Text,
-    Float,
-)
+from datetime import UTC, datetime
+
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import declarative_base, relationship
 
 # 统一处理 JSON 列类型：
