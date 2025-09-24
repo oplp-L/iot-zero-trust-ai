@@ -1,19 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Link, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import DevicePage from "./pages/DevicePage";
 import UserPage from "./pages/UserPage";
 import GroupPage from "./pages/GroupPage";
 import LoginPage from "./pages/LoginPage";
-import Dashboard from "./pages/Dashboard"; // 新增
-import { Layout, Menu, Button } from "antd";
+import Dashboard from "./pages/Dashboard";
+import { Layout, Menu, Button, Avatar, Dropdown, message } from "antd";
+import { UserOutlined, DashboardOutlined, AppstoreOutlined, TeamOutlined, LogoutOutlined } from "@ant-design/icons";
 
 const { Header, Content } = Layout;
 
 function RequireAuth({ children }) {
   const token = localStorage.getItem("token");
   if (!token) {
-    // not authenticated -> redirect to login
     return <Navigate to="/login" replace />;
   }
   return children;
@@ -21,23 +21,24 @@ function RequireAuth({ children }) {
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token"));
+  const [showLoginModal, setShowLoginModal] = useState(false); // 控制登录弹窗
+  const username = "Admin";
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // initialize axios Authorization header if token exists
     if (token) {
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     } else {
       delete axios.defaults.headers.common["Authorization"];
     }
 
-    // simple interceptor to handle 401 globally: clear token and redirect to login
     const resInterceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
         if (error.response && error.response.status === 401) {
           localStorage.removeItem("token");
           delete axios.defaults.headers.common["Authorization"];
-          // force reload to login page
           window.location.href = "/login";
         }
         return Promise.reject(error);
@@ -53,100 +54,177 @@ function App() {
     localStorage.removeItem("token");
     delete axios.defaults.headers.common["Authorization"];
     setToken(null);
-    // navigate to login
+    message.success("已退出登录");
     window.location.href = "/login";
   };
 
   const handleLoginSuccess = (newToken) => {
-    // callback to set token state after login (LoginPage sets localStorage itself)
     setToken(newToken);
     axios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+    setShowLoginModal(false); // 登录成功关闭弹窗
+  };
+
+  // 使用 useLocation 获取当前路由，实现菜单高亮
+  const path = location.pathname;
+  const menuKeyMap = {
+    "/dashboard": "dashboard",
+    "/": "devices",
+    "/users": "users",
+    "/groups": "groups"
+  };
+  const selectedKey = menuKeyMap[path] || "dashboard";
+
+  // 右上角用户下拉菜单
+  const userDropdown = (
+    <Dropdown
+      menu={{
+        items: [
+          {
+            key: "logout",
+            label: (
+              <span onClick={handleLogout}>
+                <LogoutOutlined /> 退出登录
+              </span>
+            ),
+          },
+        ]
+      }}
+      placement="bottomRight"
+      arrow
+    >
+      <span style={{ cursor: "pointer", display: "flex", alignItems: "center" }}>
+        <Avatar icon={<UserOutlined />} style={{ marginRight: 8 }} />
+        <span style={{ color: "#fff", marginRight: 8 }}>{username}</span>
+      </span>
+    </Dropdown>
+  );
+
+  // 菜单点击控制：未登录弹窗提示，已登录正常跳转
+  const handleMenuClick = ({ key }) => {
+    if (!token && key !== "login") {
+      setShowLoginModal(true); // 每次点击都弹窗
+      navigate("/login");
+      return;
+    }
+    switch (key) {
+      case "dashboard":
+        navigate("/dashboard");
+        break;
+      case "devices":
+        navigate("/");
+        break;
+      case "users":
+        navigate("/users");
+        break;
+      case "groups":
+        navigate("/groups");
+        break;
+      default:
+        break;
+    }
   };
 
   return (
-    <BrowserRouter>
-      <Layout style={{ minHeight: "100vh" }}>
-        <Header style={{ display: "flex", alignItems: "center" }}>
-          <div style={{ color: "white", fontSize: 20, marginRight: 40 }}>
-            IoT Zero Trust AI Platform
-          </div>
+    <Layout style={{ minHeight: "100vh", background: "#f4f8fb" }}>
+      {/* 顶部导航栏 */}
+      <Header style={{
+        display: "flex",
+        alignItems: "center",
+        background: "#001529",
+        boxShadow: "0 2px 8px #00000026",
+        zIndex: 10
+      }}>
+        {/* LOGO与系统名 */}
+        <div style={{ color: "#fff", fontSize: 22, fontWeight: "bold", marginRight: 32, letterSpacing: 2 }}>
+          <DashboardOutlined style={{ fontSize: 28, marginRight: 10 }} />
+          IoT Zero Trust AI
+        </div>
 
-          <Menu
-            theme="dark"
-            mode="horizontal"
-            defaultSelectedKeys={["dashboard"]}
-            style={{ flex: 1 }}
-          >
-            <Menu.Item key="dashboard">
-              <Link to="/dashboard">仪表盘</Link>
-            </Menu.Item>
-            <Menu.Item key="devices">
-              <Link to="/">设备管理</Link>
-            </Menu.Item>
-            <Menu.Item key="users">
-              <Link to="/users">用户管理</Link>
-            </Menu.Item>
-            <Menu.Item key="groups">
-              <Link to="/groups">分组管理</Link>
-            </Menu.Item>
-          </Menu>
+        {/* 菜单 */}
+        <Menu
+          theme="dark"
+          mode="horizontal"
+          selectedKeys={[selectedKey]}
+          style={{ flex: 1, background: "transparent" }}
+          onClick={handleMenuClick}
+        >
+          <Menu.Item key="dashboard" icon={<DashboardOutlined />}>
+            仪表盘
+          </Menu.Item>
+          <Menu.Item key="devices" icon={<AppstoreOutlined />}>
+            设备管理
+          </Menu.Item>
+          <Menu.Item key="users" icon={<UserOutlined />}>
+            用户管理
+          </Menu.Item>
+          <Menu.Item key="groups" icon={<TeamOutlined />}>
+            分组管理
+          </Menu.Item>
+        </Menu>
 
-          <div style={{ marginLeft: 16 }}>
-            {token ? (
-              <Button type="primary" onClick={handleLogout}>
-                退出登录
-              </Button>
-            ) : (
-              <Link to="/login">
-                <Button>登录</Button>
-              </Link>
-            )}
-          </div>
-        </Header>
+        {/* 右侧用户区 */}
+        <div style={{ marginLeft: 16 }}>
+          {token ? userDropdown : (
+            <Button onClick={() => navigate("/login")}>登录</Button>
+          )}
+        </div>
+      </Header>
 
-        <Content style={{ padding: 24 }}>
-          <Routes>
-            <Route
-              path="/dashboard"
-              element={
-                <RequireAuth>
-                  <Dashboard />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/"
-              element={
-                <RequireAuth>
-                  <DevicePage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/users"
-              element={
-                <RequireAuth>
-                  <UserPage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/groups"
-              element={
-                <RequireAuth>
-                  <GroupPage />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/login"
-              element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
-            />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </Content>
-      </Layout>
-    </BrowserRouter>
+      {/* 主内容区 */}
+      <Content style={{
+        padding: "32px 24px",
+        maxWidth: 1300,
+        margin: "0 auto",
+        width: "100%",
+        minHeight: "calc(100vh - 64px)",
+      }}>
+        <Routes>
+          <Route
+            path="/dashboard"
+            element={
+              <RequireAuth>
+                <Dashboard />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/"
+            element={
+              <RequireAuth>
+                <DevicePage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/users"
+            element={
+              <RequireAuth>
+                <UserPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/groups"
+            element={
+              <RequireAuth>
+                <GroupPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              <LoginPage
+                onLoginSuccess={handleLoginSuccess}
+                showLoginModal={showLoginModal}
+                setShowLoginModal={setShowLoginModal}
+              />
+            }
+          />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </Content>
+    </Layout>
   );
 }
 
